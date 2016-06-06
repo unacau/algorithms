@@ -1,0 +1,205 @@
+package alg;
+
+import java.io.*;
+import java.util.*;
+
+/**
+ * Created by ekishigo on 7.3.16.
+ */
+public class Main {
+
+    public static int[][][] pricesMatrix;
+    public static int N;
+    public static int F;
+    public static int[][] forbiddens;
+    private static int[][] resultMatrix;
+    public static Object[][][] candidates; // [X][Y][Price] Sorted prices of each type
+    public static Price p;
+    private static int actualMin;
+    private static int actualPrice;
+    private static int stepsToComplete;
+    private static List<Integer> results;
+    private static int[] minPricesToComplete;
+
+
+    public static void main(String[] args) throws IOException {
+        Stopwatch.tick();
+        String fname = "/home/ekishigo/Documents/PR2/Latin Square/pub/pub06.in";
+
+        getInput(1, fname); // fill prices N, pricesMatrix, F, forbidden elements,
+        resultMatrix = new int[N][N];
+        fillMinusOne(resultMatrix);
+
+        actualMin = Integer.MAX_VALUE;
+        actualPrice = 0;
+        stepsToComplete = N * N;
+
+        results = new ArrayList<Integer>();
+
+        minPricesToComplete = new int[N * N + 1];
+        fillThem(minPricesToComplete);
+
+        for (int i = 0; i < N; i++) {
+            p = (Price) candidates[0][0][i];
+            solve(0, 0, p.type, actualPrice, stepsToComplete);
+        }
+
+        System.out.println(results.get(results.size() - 1)); // print answer
+    }
+
+    private static void fillThem(int[] minZbytky) {
+        int i = 1;
+        for (int Y = N - 1; Y >= 0; Y--) {
+            for (int X = N - 1; X >= 0; X--) {
+                p = (Price) candidates[X][Y][0];
+                minZbytky[i] = minZbytky[i - 1] + p.value;
+                i++;
+            }
+        }
+    }
+
+    private static void solve(int x, int y, int type, int actualPrice, int stepsToComplete) {
+        resultMatrix[x][y] = type;
+        stepsToComplete--;
+        int currentPrice = pricesMatrix[x][y][type];
+        actualPrice += currentPrice;
+        if (completed(resultMatrix)) {
+            results.add(actualPrice);
+            if (actualPrice < actualMin) {
+                actualMin = actualPrice;
+            }
+        } else {
+            if (isBetterToContinue(actualPrice, actualMin, stepsToComplete)) {
+                if (++x == N) {
+                    x = 0;
+                    if (y != N - 1) {
+                        y++;
+                    }
+                }
+                for (type = 0; type < N; type++) {
+                    p = (Price) candidates[x][y][type];
+                    if (posOk(x, y, p.type) && priceGood(actualPrice, p.value, actualMin)) {
+                        solve(x, y, p.type, actualPrice, stepsToComplete);
+                        resultMatrix[x][y] = -1;
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean isBetterToContinue(int actualPrice, int actualMin, int stepsToComplete) {
+        if (N <= 5) {
+            return true;
+        }
+        int plus = 0;
+        plus = minPricesToComplete[stepsToComplete];
+        if (actualPrice + plus > actualMin) {
+            return false;
+        }
+        return true;
+    }
+
+    private static boolean priceGood(int actualPrice, int value, int actualMin) {
+        int nextPrice = actualPrice + value;
+        if ((nextPrice > actualMin)) {
+            return false;
+        }
+        return true;
+    }
+
+    private static boolean completed(int[][] resultMatrix) {
+        return resultMatrix[N - 1][N - 1] == -1 ? false : true;
+    }
+
+    private static void sortP() {
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                Arrays.sort(candidates[i][j]);
+            }
+        }
+    }
+
+    private static boolean posOk(int x, int y, int type) {
+        if (!leftOk(x, y, type) ||
+                !upOk(x, y, type)) {
+            return false;
+        }
+        for (int i = 0; i < N; i++) {
+            if (resultMatrix[i][y] == type ||
+                    resultMatrix[x][i] == type) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean upOk(int X, int Y, int type) {
+        int forbiddenForType = findForbiddenForType(type);
+        if (Y == 0 || forbiddenForType == -1) { //if
+            return true;
+        }
+        return !(resultMatrix[X][Y - 1] == forbiddenForType);
+    }
+
+    private static int findForbiddenForType(int type) {
+        for (int i = 0; i < F; i++) {
+            if (forbiddens[i][0] == type) {
+                return forbiddens[i][1];
+            } else if (forbiddens[i][1] == type) {
+                return forbiddens[i][0];
+            }
+        }
+        return -1;
+    }
+
+    private static boolean leftOk(int X, int Y, int type) {
+        int forbiddenForType = findForbiddenForType(type);
+        if (X == 0 || forbiddenForType == -1) {
+            return true;
+        }
+        return !(resultMatrix[X - 1][Y] == forbiddenForType);
+    }
+
+    private static void fillMinusOne(int[][] matrix) {
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                matrix[i][j] = -1;
+            }
+        }
+    }
+
+    public static void getInput(int mode, String fname) throws FileNotFoundException {
+        Scanner scan;
+        switch (mode) {
+            case 0: //read from file
+                scan = new Scanner(new BufferedReader(new FileReader(fname)));
+                break;
+            case 1: // read from System.in
+                scan = new Scanner(new BufferedReader(new InputStreamReader(System.in)));
+                break;
+            default:
+                scan = new Scanner(new BufferedReader(new FileReader(fname)));
+        }
+        N = scan.nextInt();
+        pricesMatrix = new int[N][N][N];
+        candidates = new Object[N][N][N];
+        for (int type = 0; type < N; type++) {  // for each component
+            for (int Y = 0; Y < N; Y++) {  // for Y coordinate
+                for (int X = 0; X < N; X++) {   // and for X coordinate
+                    int i = scan.nextInt();
+                    candidates[X][Y][type] = new Price(i, X, Y, type);
+                    pricesMatrix[X][Y][type] = i; // read input
+                }
+            }
+        }
+        F = scan.nextInt();
+        forbiddens = new int[F][2];
+        for (int i = 0; i < forbiddens.length; i++) {
+            for (int j = 0; j < 2; j++) {
+                forbiddens[i][j] = (scan.nextInt() - 1);
+            }
+        }
+        sortP();
+    }
+
+}

@@ -1,0 +1,102 @@
+package alg;
+
+/**
+ * Created by ekishigo on 9.5.16.
+ */
+public class Main {
+
+    public static void main(String[] args) {
+        Main optBST = new Main();
+        optBST.start();
+    }
+
+    private void start() {
+        String fname = "/home/ekishigo/Documents/ALG/domaci ulohy/src/main/java/DP/pub/pub04.in";
+        FastReader fastReader  = FastReader.getReader("");
+        height = fastReader.nextInt();
+        width = fastReader.nextInt();
+        lookupNodes = new int[width][height][width][height];
+        lookupDepth = new int[width][height][width][height];
+        problemMatrix = new int[width][height];
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                problemMatrix[j][i] = fastReader.nextInt();
+            }
+        }
+        initMatrix(lookupNodes);
+        initMatrix(lookupDepth);
+        System.out.printf("%d\n", optimum(0,0,width-1,height-1)[0]);
+        System.out.printf("%d\n", optimum(0,0,width-1,height-1)[1]);
+    }
+
+    // returns optimal[number of nodes][depth]
+    private int[] optimum(int x1, int y1, int x2, int y2) {
+        if (lookupNodes[x1][y1][x2][y2] != Integer.MAX_VALUE) {
+            return new int[]{lookupNodes[x1][y1][x2][y2], lookupDepth[x1][y1][x2][y2]};
+        }
+        if (hasOneColor(x1, y1, x2, y2)) {
+            lookupNodes[x1][y1][x2][y2] = 1;
+            lookupDepth[x1][y1][x2][y2] = 0;
+            return new int[]{1, 0};
+        }
+        int nodes;
+        int depth;
+        for (int X = x1; X < x2; X++) {
+            nodes = optimum(x1, y1, X, y2)[0] + optimum(X+1, y1, x2, y2)[0] + 1;
+            depth = Math.max(optimum(x1, y1, X, y2)[1], optimum(X+1, y1, x2, y2)[1]) + 1;
+            updateLookupNodes(nodes, x1, y1, x2, y2);
+            updateLookupDepth(depth, x1, y1, x2, y2);
+        }
+        for (int Y = y1; Y < y2; Y++) {
+            nodes = optimum(x1, y1, x2, Y)[0] + optimum(x1, Y+1, x2, y2)[0] + 1;
+            depth = Math.max(optimum(x1, y1, x2, Y)[1], optimum(x1, Y+1, x2, y2)[1]) + 1;
+            updateLookupNodes(nodes, x1, y1, x2, y2);
+            updateLookupDepth(depth, x1, y1, x2, y2);
+        }
+        return new int[]{lookupNodes[x1][y1][x2][y2], lookupDepth[x1][y1][x2][y2]};
+    }
+
+    private void updateLookupDepth(int depth, int x1, int y1, int x2, int y2) {
+        if (depth < lookupDepth[x1][y1][x2][y2]) {
+            lookupDepth[x1][y1][x2][y2] = depth;
+        }
+    }
+
+    private void updateLookupNodes(int nodes, int x1, int y1, int x2, int y2) {
+        if (nodes < lookupNodes[x1][y1][x2][y2]) {
+            lookupNodes[x1][y1][x2][y2] = nodes;
+        }
+    }
+
+    private boolean hasOneColor(int x1, int y1, int x2, int y2) {
+        int color = problemMatrix[x1][y1];
+        for (int i = x1; i <= x2; i++) {
+            for (int j = y1; j <= y2; j++) {
+                if (problemMatrix[i][j] != color) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private void initMatrix(int[][][][] matrix) {
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < height; j++) {
+                for (int k = 0; k < width; k++) {
+                    for (int l = 0; l < height; l++) {
+                        matrix[i][j][k][l] = Integer.MAX_VALUE;
+                    }
+                }
+            }
+        }
+    }
+
+    private int width;
+    private int height;
+    private int[][] problemMatrix;
+    private int[][][][] lookupNodes; // [x1 - start][y - start][x - end][y - end] or simple (x1,y1) , (x2,r2);
+    private int[][][][] lookupDepth; // [x1 - start][y - start][x - end][y - end] or simple (x1,y1) , (x2,r2);
+
+
+}
